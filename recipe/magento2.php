@@ -359,8 +359,15 @@ after('deploy:failed', 'magento:maintenance:disable');
 
 // Artifact deployment section
 
+// The compression used for the artifact: either 'gzip' or 'zstd'
+set('artifact_compression', 'gzip');
+
 // The file the artifact is saved to
-set('artifact_file', 'artifact.tar.gz');
+set('artifact_file', function () {
+    return get('artifact_compression') === 'zstd'
+        ? 'artifact.tar.zst'
+        : 'artifact.tar.gz';
+});
 
 // The directory the artifact is saved in
 set('artifact_dir', 'artifacts');
@@ -401,7 +408,7 @@ task('artifact:package', function () {
             "No artifact excludes file provided, provide one at artifacts/excludes or change location",
         );
     }
-    run('{{bin/tar}} --exclude-from={{artifact_excludes_file}} -czf {{artifact_path}} -C {{release_or_current_path}} .');
+    run('{{bin/tar}} --exclude-from={{artifact_excludes_file}} -caf {{artifact_path}} -C {{release_or_current_path}} .');
 });
 
 desc('Uploads artifact in release folder for extraction.');
@@ -411,7 +418,7 @@ task('artifact:upload', function () {
 
 desc('Extracts artifact in release path.');
 task('artifact:extract', function () {
-    run('{{bin/tar}} -xzpf {{release_path}}/{{artifact_file}} -C {{release_path}}');
+    run('{{bin/tar}} -xapf {{release_path}}/{{artifact_file}} -C {{release_path}}');
     run('rm -rf {{release_path}}/{{artifact_file}}');
 });
 
